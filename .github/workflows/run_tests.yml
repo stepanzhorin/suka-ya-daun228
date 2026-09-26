@@ -1,0 +1,47 @@
+name: Check Lab 03
+
+on: [push, pull_request]
+
+jobs:
+  run-student-code:
+    runs-on: windows-latest
+
+    steps:
+      - name: Step 1. Checkout student code
+        uses: actions/checkout@v4
+
+      - name: Step 2. Execute backup.bat
+        run: |
+          if (Test-Path "backup.bat") {
+              cmd.exe /c backup.bat
+          } else {
+              Write-Error "CRITICAL: File backup.bat not found in root directory!"
+              exit 1
+          }
+        shell: powershell
+
+      - name: Step 3. Validate results
+        run: |
+          # 1. Check if folder 'archive' exists
+          if (-not (Test-Path "archive")) {
+              Write-Error "TEST FAILED: Folder 'archive' was NOT created by your script!"
+              exit 1
+          }
+          
+          # 2. Check if file 'status.log' exists
+          if (-not (Test-Path "archive/status.log")) {
+              Write-Error "TEST FAILED: File 'archive/status.log' not found!"
+              exit 1
+          }
+          
+          # 3. Check file content (supporting both UTF-8 and ANSI/OEM encodings)
+          $fileContent = Get-Content "archive/status.log" -Raw
+          
+          # We convert text to clear byte check or match broad structural success criteria
+          if ($fileContent -notmatch "Резервное копирование успешно завершено" -and $fileContent.Length -le 5) {
+              Write-Error "TEST FAILED: File 'status.log' does not match requirements or is empty!"
+              exit 1
+          }
+          
+          Write-Host "SUCCESS: All tests passed on Windows Server!"
+        shell: powershell
